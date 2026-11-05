@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
-import net.nikdo53.neobackports.io.components.DataComponentType;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import java.lang.reflect.Field;
@@ -74,7 +73,8 @@ public final class ClientAutomation {
             Field holderField = components.getField("CAUGHT_FISH_INFO");
             Object holder = holderField.get(null);
             Object componentType = holder.getClass().getMethod("get").invoke(holder);
-            Method get = ItemStack.class.getMethod("get", DataComponentType.class);
+            Class<?> componentTypeClass = Class.forName("net.nikdo53.neobackports.io.components.DataComponentType");
+            Method get = ItemStack.class.getMethod("get", componentTypeClass);
             Object caughtInfo = get.invoke(stack, componentType);
             if (caughtInfo == null) return false;
             Object rarity = caughtInfo.getClass().getMethod("rarity").invoke(caughtInfo);
