@@ -1,10 +1,11 @@
-name: Build Forge mod
+name: Build Starcatcher Assistant
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 jobs:
-  build:
+  build-mod:
+    name: Build Forge mod
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,4 +22,22 @@ jobs:
         with:
           name: StarcatcherAssistant-forge-1.20.1
           path: build/libs/*.jar
+          if-no-files-found: error
+
+  build-desktop:
+    name: Build Windows desktop app
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install packager
+        run: python -m pip install --upgrade pyinstaller
+      - name: Build EXE
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name StarcatcherAssistant desktop/assistant.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StarcatcherAssistant-Windows
+          path: dist/StarcatcherAssistant.exe
           if-no-files-found: error
