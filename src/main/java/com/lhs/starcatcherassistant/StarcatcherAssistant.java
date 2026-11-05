@@ -7,7 +7,9 @@ import net.minecraftforge.common.MinecraftForge;
 public class StarcatcherAssistant {
     public static final String MOD_ID = "starcatcherassistant";
     public StarcatcherAssistant() {
-        MinecraftForge.EVENT_BUS.register(new ClientAutomation());
+        ClientAutomation automation = new ClientAutomation();
+        ClientAutomationBridge.register(automation);
+        MinecraftForge.EVENT_BUS.register(automation);
         ControlServer.start();
     }
 }
