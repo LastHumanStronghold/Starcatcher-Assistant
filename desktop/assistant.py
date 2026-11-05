@@ -36,6 +36,11 @@ ttk.Button(row2, text="Пауза", command=lambda: send("PAUSE")).pack(side="le
 ttk.Button(row2, text="Продолжить", command=lambda: send("RESUME")).pack(side="left", expand=True, fill="x", padx=3)
 ttk.Button(row2, text="Стоп", command=lambda: send("STOP")).pack(side="left", expand=True, fill="x", padx=3)
 
+row3 = ttk.Frame(frame)
+row3.pack(fill="x", pady=(0, 8))
+ttk.Button(row3, text="Автопродажа COMMON: ВКЛ", command=lambda: send("SELL_COMMON_START")).pack(side="left", expand=True, fill="x", padx=3)
+ttk.Button(row3, text="ВЫКЛ", command=lambda: send("SELL_COMMON_STOP")).pack(side="left", expand=True, fill="x", padx=3)
+
 settings = ttk.LabelFrame(frame, text="Наживка: интервалы в тиках (20 тиков = 1 сек.)", padding=10)
 settings.pack(fill="x", pady=8)
 hold = tk.StringVar(value="35")
