@@ -57,8 +57,11 @@ public final class ClientAutomation {
 
             // QUICK_MOVE transfers only if the Selling Bin accepts the item (i.e. it has a configured value).
             mc.gameMode.handleInventoryMouseClick(menu.containerId, slot, 0, ClickType.QUICK_MOVE, mc.player);
-            // If Auto-Sell is enabled the bin sells on its own; this button also sells when it is disabled.
-            mc.gameMode.handleInventoryButtonClick(menu.containerId, 68);
+            // Never sell unrelated contents already stored in the bin.
+            if (isCommonStarcatcherFish(menu.getSlot(0).getItem())) {
+                // If Auto-Sell is enabled the bin sells on its own; this button also sells when it is disabled.
+                mc.gameMode.handleInventoryButtonClick(menu.containerId, 68);
+            }
             sellCooldown = 4;
             return;
         }
