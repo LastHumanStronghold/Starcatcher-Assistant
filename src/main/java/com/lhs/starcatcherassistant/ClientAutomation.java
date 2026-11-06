@@ -167,8 +167,12 @@ public final class ClientAutomation {
         return ((Number) primitive.getClass().getMethod("getAsInt").invoke(primitive)).intValue();
     }
 
-    private static int widgetX(Object widget) throws ReflectiveOperationException {
-        return ((Number) widget.getClass().getMethod("getX").invoke(widget)).intValue();
+    private static int widgetX(Object widget) {
+        try {
+            return ((Number) widget.getClass().getMethod("getX").invoke(widget)).intValue();
+        } catch (ReflectiveOperationException ignored) {
+            return Integer.MAX_VALUE;
+        }
     }
 
     private static void pressButton(Object button) throws ReflectiveOperationException {
