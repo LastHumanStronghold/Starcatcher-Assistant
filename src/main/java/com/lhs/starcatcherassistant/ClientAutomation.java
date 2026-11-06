@@ -6,7 +6,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public final class ClientAutomation {
@@ -127,9 +126,9 @@ public final class ClientAutomation {
                 return;
             }
 
-            buttons.sort(Comparator.comparingInt(ClientAutomation::widgetX));
+            // CollectibleCardScreen registers the KEEP button first and SELL second.
             Object keepButton = buttons.get(0);
-            Object sellButton = buttons.get(buttons.size() - 1);
+            Object sellButton = buttons.get(1);
 
             if (rarity == 0) {
                 if (dropActionStage == 0) {
@@ -165,14 +164,6 @@ public final class ClientAutomation {
                 .invoke(jsonObject, key);
         if (primitive == null) return fallback;
         return ((Number) primitive.getClass().getMethod("getAsInt").invoke(primitive)).intValue();
-    }
-
-    private static int widgetX(Object widget) {
-        try {
-            return ((Number) widget.getClass().getMethod("getX").invoke(widget)).intValue();
-        } catch (ReflectiveOperationException ignored) {
-            return Integer.MAX_VALUE;
-        }
     }
 
     private static void pressButton(Object button) throws ReflectiveOperationException {
