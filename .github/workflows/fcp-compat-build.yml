@@ -1,0 +1,96 @@
+name: Build patched FCP 1.2.1
+run-name: FCP 1.2.1 mixin compatibility build
+
+on:
+  push:
+    branches: [ fcp-compat-build ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-fcp:
+    name: Build patched Frontline Combat Pack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout build harness
+        uses: actions/checkout@v4
+
+      - name: Checkout FCP release source
+        uses: actions/checkout@v4
+        with:
+          repository: CommissarMado/Frontline-Combat-Pack
+          ref: 2b27abb905195a923edd412790d2fa77db5d8fcc
+          path: fcp-source
+          lfs: true
+          fetch-depth: 1
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: fcp-source/**/*.gradle*
+
+      - name: Patch AmmoSupplierItem mixin
+        working-directory: fcp-source
+        shell: bash
+        run: |
+          cat > src/main/java/frontline/combat/fcp/mixins/AmmoSupplierItemMixin.java <<'EOF'
+          package frontline.combat.fcp.mixins;
+
+          import com.atsuishio.superbwarfare.item.ammo.AmmoSupplierItem;
+          import net.minecraft.world.InteractionHand;
+          import net.minecraft.world.InteractionResultHolder;
+          import net.minecraft.world.entity.player.Player;
+          import net.minecraft.world.item.Item;
+          import net.minecraft.world.item.ItemStack;
+          import net.minecraft.world.level.Level;
+          import org.spongepowered.asm.mixin.Mixin;
+          import org.spongepowered.asm.mixin.injection.At;
+          import org.spongepowered.asm.mixin.injection.Inject;
+          import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+          /**
+           * Prevents Superb Warfare ammo-supplier items from being converted into
+           * the abstract player ammo pool when right-clicked.
+           *
+           * AmmoSupplierItem inherits Item.use(). Injecting into Item avoids
+           * Mixin trying to locate an inherited method as if it were declared
+           * directly on AmmoSupplierItem. The runtime guard limits this change
+           * to Superb Warfare ammo-supplier items only.
+           */
+          @Mixin(Item.class)
+          public abstract class AmmoSupplierItemMixin {
+
+              @Inject(method = "use", at = @At("HEAD"), cancellable = true)
+              private void fcp$noAmmoPoolConversion(Level level, Player player, InteractionHand hand,
+                                                    CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
+                  if (!((Object) this instanceof AmmoSupplierItem)) {
+                      return;
+                  }
+
+                  cir.setReturnValue(InteractionResultHolder.pass(player.getItemInHand(hand)));
+              }
+          }
+          EOF
+
+          grep -q '@Mixin(Item.class)' src/main/java/frontline/combat/fcp/mixins/AmmoSupplierItemMixin.java
+          grep -q 'method = "use"' src/main/java/frontline/combat/fcp/mixins/AmmoSupplierItemMixin.java
+          grep -q 'instanceof AmmoSupplierItem' src/main/java/frontline/combat/fcp/mixins/AmmoSupplierItemMixin.java
+
+      - name: Build FCP 1.2.1 patched
+        working-directory: fcp-source
+        shell: bash
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon clean build -Pmod_version=1.2.1-lhsfix1
+
+      - name: Upload patched JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: FCP-1.2.1-lhsfix1-Forge-1.20.1
+          path: fcp-source/build/libs/fcp-1.2.1-lhsfix1.jar
+          if-no-files-found: error
+          retention-days: 14
