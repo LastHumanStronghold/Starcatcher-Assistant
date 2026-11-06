@@ -1,0 +1,33 @@
+name: Inspect operzone release
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/inspect-operzone.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download operzone release asset
+        run: |
+          curl -fL --retry 3 --retry-delay 2 \
+            'https://github.com/LastHumanStronghold/Starcatcher-Assistant/releases/download/Test/operzone-0.1.0-fix17.jar' \
+            -o operzone-0.1.0-fix17.jar
+          echo 'ee0f0ce93d91c120c180d956d025fe85c65df30301bfe3e3573973d6a8054d77  operzone-0.1.0-fix17.jar' | sha256sum -c -
+      - name: Inspect archive and decompile classes
+        run: |
+          mkdir -p inspection
+          jar tf operzone-0.1.0-fix17.jar > inspection/jar-contents.txt
+          curl -fL --retry 3 \
+            'https://repo.maven.apache.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar' \
+            -o cfr.jar
+          java -jar cfr.jar operzone-0.1.0-fix17.jar --outputdir inspection/decompiled --silent true
+          grep -RniE 'ОСТАВИТЬ|ПРОДАТЬ|Обычный|rarity|sell|keep|common' inspection/decompiled > inspection/relevant-search.txt || true
+          du -ah inspection | sort -h | tail -30 > inspection/size-summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: operzone-decompiled
+          path: inspection/
+          if-no-files-found: error
