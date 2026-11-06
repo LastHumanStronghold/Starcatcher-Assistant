@@ -80,12 +80,60 @@ jobs:
           grep -q 'method = "use"' src/main/java/frontline/combat/fcp/mixins/AmmoSupplierItemMixin.java
           grep -q 'instanceof AmmoSupplierItem' src/main/java/frontline/combat/fcp/mixins/AmmoSupplierItemMixin.java
 
+      - name: Skip optional icon regeneration hook
+        working-directory: fcp-source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("build.gradle")
+          source = p.read_text(encoding="utf-8")
+          target = "tasks.named('processResources').configure { dependsOn 'renderVehicleIcons' }"
+          if source.count(target) != 1:
+              raise SystemExit("Expected optional renderVehicleIcons dependency line exactly once")
+          source = source.replace(
+              target,
+              "// CI compatibility rebuild: keep committed vehicle icons; do not require the absent optional Python renderer."
+          )
+          p.write_text(source, encoding="utf-8")
+          PY
+
       - name: Build FCP 1.2.1 patched
         working-directory: fcp-source
         shell: bash
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon clean build -Pmod_version=1.2.1-lhsfix1
+
+      - name: Verify patched JAR contents
+        working-directory: fcp-source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          jar = Path("build/libs/fcp-1.2.1-lhsfix1.jar")
+          if not jar.is_file():
+              raise SystemExit(f"Missing output JAR: {jar}")
+          with ZipFile(jar) as archive:
+              names = set(archive.namelist())
+              required = {
+                  "frontline/combat/fcp/mixins/AmmoSupplierItemMixin.class",
+                  "fcp.mixins.json",
+                  "fcp.refmap.json",
+                  "META-INF/mods.toml",
+              }
+              missing = sorted(required - names)
+              if missing:
+                  raise SystemExit("Missing expected JAR entries: " + ", ".join(missing))
+              config = archive.read("fcp.mixins.json").decode("utf-8")
+              if '"AmmoSupplierItemMixin"' not in config:
+                  raise SystemExit("AmmoSupplierItemMixin is absent from fcp.mixins.json")
+              refmap = archive.read("fcp.refmap.json")
+              if not refmap:
+                  raise SystemExit("fcp.refmap.json is empty")
+          print(f"Verified {jar} ({jar.stat().st_size} bytes)")
+          PY
 
       - name: Upload patched JAR
         uses: actions/upload-artifact@v4
